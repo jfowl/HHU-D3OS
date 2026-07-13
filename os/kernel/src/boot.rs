@@ -368,6 +368,10 @@ pub extern "C" fn start(multiboot2_magic: u32, multiboot2_addr: *const BootInfor
         }
     }
 
+
+
+    crate::device::tpm2::init_tpm2();
+
     // Load initial ramdisk
     init_initrd(initrd_tag);
 

@@ -68,7 +68,12 @@ args = [
 
     # Audio configuration (Using pulse audio for Linux)
     "-audiodev", "id=audio0,driver=${QEMU_AUDIO_DEVICE}",
-]
+
+    # Connect to software TPM (launched separately with swtpm)
+    "-chardev", "socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock",
+    "-tpmdev", "emulator,id=tpm0,chardev=chrtpm",
+    "-device", "tpm-tis,tpmdev=tpm0",
+]   
 
 [tasks.qemu-wsl]
 command = "qemu-system-x86_64.exe"

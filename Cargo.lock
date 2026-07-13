@@ -678,6 +678,7 @@ dependencies = [
  "tar-no-std",
  "terminal",
  "thingbuf",
+ "tpm2",
  "uefi",
  "uefi-raw",
  "uuid",
@@ -1646,6 +1647,12 @@ dependencies = [
  "chrono",
  "syscall",
 ]
+
+[[package]]
+name = "tpm2"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a17074929ba8ca1dce12007798be92aaa3c7c8d6c304f9ba5dd101f2870008c4"
 
 [[package]]
 name = "tracing"
