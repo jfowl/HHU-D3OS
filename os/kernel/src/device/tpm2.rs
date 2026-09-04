@@ -1,3 +1,5 @@
+use core::ptr::{write_volatile, read_volatile};
+
 use acpi::{
     AcpiTable,
     sdt::{SdtHeader, Signature},
@@ -61,10 +63,13 @@ pub fn init_tpm2() {
     //     start_method_params: 0,
     // }
 
-    // so for some reason, the control_area_address (which is where the MMIO is located) is 0, where it should be (0xfed40000 on QEMU)
-
-    // For now, given that we know where the QEMU address is, map that into kernel space:
-    let mmio_start = 0xfed40000;
+    // Map control registers into kernel memory:
+    let mmio_start = if tpm2.control_area_address != 0 {
+        tpm2.control_area_address
+    } else {
+        // Default on at least QEMU
+        0xfed40000
+    };
     let mmio_end = mmio_start + 0x5000;
 
     let process = process_manager().read().kernel_process().expect("Failed to get kernel process");
@@ -77,11 +82,69 @@ pub fn init_tpm2() {
     );
     info!(" mapped TPM2 MMIO region into kernel ({} - {})", mmio_start, mmio_end);
 
-    // Then, test the TPM by using it to get random data:
-    let cmd = GetRandom { bytes_requested: 4 };
-    let mmio_ptr: *const u64 = &mmio_start;
+    // Use the Command Response Buffer (CRB) to send a get_random command to the TPM2:
 
-    *mmio_ptr = cmd.into();
+    // <AISlop> ------------------------------------
+
+    // Build a minimal TPM2 GetRandom command in TPM wire format.
+    const TPM_ST_NO_SESSIONS: u16 = 0x8001;
+    const TPM2_CC_GET_RANDOM: u32 = 0x0000_017b;
+    const REQUESTED_BYTES: u16 = 16;
+
+    let mut cmd = [0u8; 12];
+    let cmd_len = cmd.len() as u32;
+    cmd[0..2].copy_from_slice(&TPM_ST_NO_SESSIONS.to_be_bytes());
+    cmd[2..6].copy_from_slice(&(cmd_len).to_be_bytes());
+    cmd[6..10].copy_from_slice(&TPM2_CC_GET_RANDOM.to_be_bytes());
+    cmd[10..12].copy_from_slice(&REQUESTED_BYTES.to_be_bytes());
+
+    // On the common QEMU CRB setup, the command buffer is placed in the shared region
+    // following the control registers.
+    let crb_cmd_buf = (mmio_start as usize + 0x1000) as *mut u8;
+    for (i, byte) in cmd.iter().copied().enumerate() {
+        unsafe {
+            write_volatile(crb_cmd_buf.add(i), byte);
+        }
+    }
+
+    // Notify the TPM that a command is ready.
+    let ctrl_req = mmio_start as *mut u32;
+    unsafe {
+        write_volatile(ctrl_req, 0x1);
+    }
+
+    info!("TPM2 GetRandom request queued via CRB ({} bytes)", REQUESTED_BYTES);
+    // Poll for response: The CRB command/response buffer uses the same buffer.
+    // The response size is at offset 2..6 (big-endian u32). Poll until non-zero or timeout.
+    let crb_resp_buf = crb_cmd_buf;
+    let mut resp_len: u32 = 0;
+    for _ in 0..1_000_000 {
+        unsafe {
+            let b0 = read_volatile(crb_resp_buf.add(2)) as u32;
+            let b1 = read_volatile(crb_resp_buf.add(3)) as u32;
+            let b2 = read_volatile(crb_resp_buf.add(4)) as u32;
+            let b3 = read_volatile(crb_resp_buf.add(5)) as u32;
+            resp_len = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
+        }
+        if resp_len != 0 {
+            break;
+        }
+    }
+
+    if resp_len == 0 {
+        info!("TPM2 response timed out");
+    } else {
+        let read_len = core::cmp::min(resp_len as usize, 1024);
+        let mut resp = alloc::vec::Vec::with_capacity(read_len);
+        unsafe {
+            for i in 0..read_len {
+                resp.push(read_volatile(crb_resp_buf.add(i)));
+            }
+        }
+        info!("TPM2 response (len={}): {:x?}", resp_len, resp);
+    }
+
+    // </AISlop> ------------------------------------
 }
 
 #[derive(Copy, Clone, Debug)]
