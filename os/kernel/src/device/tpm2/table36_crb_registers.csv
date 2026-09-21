@@ -1,0 +1,116 @@
+Locality,Offset,Register Name,Description
+0,0003h-0000h,TPM_LOC_STATE_0,Used to determine current state of locality of a TPM. This register is aliased across all localities. Read-only.
+0,0007h-0004h,Undefined,Reserved
+0,000Bh-0008h,TPM_LOC_CTRL_0,Used to gain control of a TPM by this locality. This register SHALL NOT be aliased.
+0,000Fh-000Ch,TPM_LOC_STS_0,Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
+0,0013h-0010h,TPM_DATA_CSUM_ENABLE_0,Register to enable checksum computation on command and response
+0,0017h-0014h,TPM_DATA_CSUM_0,Register to read the checksum computed
+0,002Fh-0018h,Reserved,Reserved
+0,0037h-0030h,TPM_CRB_INTF_ID_0,"Used to identify the Interface types supported by a TPM as well as the Vendor ID, Device ID and Revision ID "
+0,003Fh-0038h,Reserved,Reserved
+0,0043h-0040h,TPM_CRB_CTRL_REQ_0,Register used to initiate transactions for the CRB interface. This register MAY be aliased across localities.
+0,0047h-0044h,TPM_CRB_CTRL_STS_0,Register used by a TPM to provide status of the CRB interface. This register MAY be aliased across localities
+0,004Bh-0048h,TPM_CRB_CTRL_CANCEL_0,Register used by Software to cancel command processing. This register MAY be aliased across localities.
+0,004Fh-004Ch,TPM_CRB_CTRL_START_0,Register used to indicate presence of command or response data in the CRB buffer. This register MAY be aliased across localities
+0,0053h-0050h,TPM_CRB_INT_ENABLE_0,Register used to configure interrupts. This register MAY be aliased across localities
+0,0057h-0054h,TPM_CRB_INT_STS_0,Register used to respond to interrupts. This register MAY be aliased across localities
+0,005Bh-0058h,TPM_CRB_CTRL_CMD_SIZE_0,Size of the Command buffer. This register MAY be aliased across localities.
+0,005Fh-005Ch,TPM_CRB_CTRL_CMD_LADDR_0,Lower 32bits of the Command buffer start address for Locality 0. This register MAY be aliased across localities.
+0,0063h-0060h,TPM_CRB_CTRL_CMD_HADDR_0,Upper 32bits of the Command buffer start address for Locality 0. This register MAY be aliased across localities.
+0,0067h-0064h,TPM_CRB_CTRL_RSP_SIZE_0,"Size of the Response buffer. Note: If command and response buffers are implemented as a single buffer, this field SHALL be identical to the value in the TPM_CRB_CTRL_CMD_SIZE_x buffer. This register MAY be aliased across localities. "
+0,006Fh-0068h,TPM_CRB_CTRL_RSP_ADDR_0,"Address of the start of the Response buffer. Note: If command and response buffers are implemented as a single buffer, this field SHALL contain the same address contained in TPM_CRB_CTRL_CMD_HADDR_x and TPM_CRB_CMD_LADDR_x. This register MAY be aliased across localities. "
+0,007Fh-0070h,Reserved,Reserved
+0,0EFFh-0080h,TPM_CRB_DATA_BUFFER_0,"Command/Response Data may be defined as large as 3968. This is implementation-specific. However, the full address space has been reserved. This buffer MAY be aliased across localities. This field accepts data transfers from 1B up to the size indicated by TPM_CRB_INTF_ID_x.CapDataXferSizeSupport (see section 6.4.2.2 CRB Interface Identifier Register). "
+0,0FFFh-0F00h,Reserved,Reserved for maximum size of Command/Response Buffer
+1,1003h-1000h,TPM_LOC_STATE_1,Same as TPM_LOC_STATE_0
+1,1007h-1004h,Reserved,Reserved
+1,100Bh-1008h,TPM_LOC_CTRL_1,Used to gain control of a TPM by this locality.
+1,100Fh-100Ch,TPM_LOC_STS_1,Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
+1,0013h-0010h,TPM_DATA_CSUM_ENABLE_1,Same as TPM_DATA_CSUM_ENABLE_0
+1,0017h-0014h,TPM_DATA_CSUM_1,Same as TPM_DATA_CSUM_0
+1,102Fh-1018h,Reserved,Reserved
+1,1037h-1030h,TPM_CRB_INTF_ID_1,Same as TPM_CRB_INTF_ID_0
+1,103Fh-1038h,Reserved,Reserved
+1,1043h-1040h,TPM_CRB_CTRL_REQ_1,Same as TPM_CRB_CTRL_REQ_0
+1,1047h-1044h,TPM_CRB_CTRL_STS_1,Same as TPM CRB_CTRL_STS_0
+1,104Bh-1048h,TPM_CRB_CTRL_CANCEL_1,Same as TPM_CRB_CTRL_CANCEL_0
+1,104Fh-104Ch,TPM_CRB_CTRL_START_1,Same as TPM_CRB_CTRL_START_0
+1,1053h-1050h,TPM_CRB_INT_ENABLE_1,Same as TPM_CRB_ INT_ENABLE_0
+1,1057h-1054h,TPM_CRB_INT_STS_1,Same as TPM_CRB_INT_STS_0
+1,105Bh-1058h,TPM_CRB_CTRL_CMD_SIZE_1,Same as TPM_CRB_CTRL_CMD_SIZE_0
+1,105Fh-105Ch,TPM_CRB_CTRL_CMD_LADDR_1,Same as TPM_CRB_CTRL_CMD_LADDR_0
+1,1063h-1060h,TPM_CRB_CTRL_CMD_HADDR_1,Same as TPM_CRB_CTRL_CMD_HADDR_0
+1,1067h-1064h,TPM_CRB_CTRL_RSP_SIZE_1,Same as TPM_CRB_CTRL_RSP_SIZE_0
+1,106Fh-1068h,TPM_CRB_CTRL_RSP_ADDR_1,Same as TPM_CRB_RSP_ADDR_0
+1,107Fh-1070h,Reserved,Reserved
+1,1EFFh-1080h,TPM_CRB_DATA_BUFFER_1,Same as TPM_CRB_DATA_BUFFER_0
+1,1FFFh-1F00h,Reserved,Reserved for maximum size of Command/Response Buffer
+2,2003h-2000h,TPM_LOC_STATE_2,Same as TPM_LOC_STATE_0
+2,2007h-2004h,Reserved,Reserved
+2,200Bh-2008h,TPM_LOC_CTRL_2,Used to gain control of a TPM by this locality.
+2,200Fh-200Ch,TPM_LOC_STS_2,Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
+2,0013h-0010h,TPM_DATA_CSUM_ENABLE_2,Same as TPM_DATA_CSUM_ENABLE_0
+2,0017h-0014h,TPM_DATA_CSUM_2,Same as TPM_DATA_CSUM_0
+2,202Fh-2018h,Reserved,Reserved
+2,2037h-2030h,TPM_CRB_INTF_ID_2,Same as TPM_CRB_INTF_ID_0
+2,203Fh-2038h,Reserved,Reserved
+2,2043h-2040h,TPM_CRB_CTRL_REQ_2,Same as TPM_CRB_CTRL_REQ_0
+2,2047h-2044h,TPM_CRB_CTRL_STS_2,Same as TPM CRB_CTRL_STS_0
+2,204Bh-2048h,TPM_CRB_CTRL_CANCEL_2,Same as TPM_CRB_CTRL_CANCEL_0
+2,204Fh-204Ch,TPM_CRB_CTRL_START_2,Same as TPM_CRB_CTRL_START_0
+2,2053h-2050h,TPM_CRB_INT_ENABLE_2,Same as TPM_CRB_INT_ENABLE_0
+2,2057h-2054h,TPM_CRB_INT_STS_2,Same as TPM_CRB_INT_STS_0
+2,205Bh-2058h,TPM_CRB_CTRL_CMD_SIZE_2,Same as TPM_CRB_CTRL_CMD_SIZE_0
+2,205Fh-205Ch,TPM_CRB_CTRL_CMD_LADDR_2,Same as TPM_CRB_CTRL_CMD_LADDR_0
+2,2063h-2060h,TPM_CRB_CTRL_CMD_HADDR_2,Same as TPM_CRB_CTRL_CMD_HADDR_0
+2,2067h-2064h,TPM_CRB_CTRL_RSP_SIZE_2,Same as TPM_CRB_CTRL_RSP_SIZE_0
+2,206Fh-2068h,TPM_CRB_CTRL_RSP_ADDR_2,Same as TPM_CRB_RSP_ADDR_0
+2,207Fh-2070h,Reserved,Reserved
+2,2EFFh-2080h,TPM_CRB_DATA_BUFFER_2,Same as TPM_CRB_DATA_BUFFER_0
+2,2FFFh-2F00h,Reserved,Reserved for maximum size of Command/Response Buffer
+3,3003h-3000h,TPM_LOC_STATE_3,Same as TPM_LOC_STATE_0
+3,3007h-3004h,Reserved,Reserved
+3,300Bh-3008h,TPM_LOC_CTRL_3,Used to gain control of a TPM by this locality.
+3,300Fh-300Ch,TPM_LOC_STS_3,Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
+3,0013h-0010h,TPM_DATA_CSUM_ENABLE_3,Same as TPM_DATA_CSUM_ENABLE_0
+3,0017h-0014h,TPM_DATA_CSUM_3,Same as TPM_DATA_CSUM_0
+3,302Fh-3018h,Reserved,Reserved
+3,3037h-3030h,TPM_CRB_INTF_ID_3,Same as TPM_CRB_INTF_ID_0
+3,303Fh-3038h,Reserved,Reserved
+3,3043h-3040h,TPM_CRB_CTRL_REQ_3,Same as TPM_CRB_CTRL_REQ_0
+3,3047h-3044h,TPM_CRB_CTRL_STS_3,Same as TPM CRB_CTRL_STS_0
+3,304Bh-3048h,TPM_CRB_CTRL_CANCEL_3,Same as TPM_CRB_CTRL_CANCEL_0
+3,304Fh-304Ch,TPM_CRB_CTRL_START_3,Same as TPM_CRB_CTRL_START_0
+3,3053h-3050h,TPM_CRB_INT_ENABLE_3,Same as TPM_CRB_INT_ENABLE_0
+3,3057h-3054h,TPM_CRB_INT_STS_3,Same as TPM_CRB_INT_STS_0
+3,305Bh-3058h,TPM_CRB_CTRL_CMD_SIZE_3,Same as TPM_CRB_CTRL_CMD_SIZE_0
+3,305Fh-305Ch,TPM_CRB_CTRL_CMD_LADDR_3,Same as TPM_CRB_CTRL_CMD_LADDR_0
+3,3063h-3060h,TPM_CRB_CTRL_CMD_HADDR_3,Same as TPM_CRB_CTRL_CMD_HADDR_0
+3,3067h-3064h,TPM_CRB_CTRL_RSP_SIZE_3,Same as TPM_CRB_CTRL_RSP_SIZE_0
+3,306Fh-3068h,TPM_CRB_CTRL_RSP_ADDR_3,Same as TPM_CRB_RSP_ADDR_0
+3,307Fh-3070h,Reserved,Reserved
+3,3EFFh-3080h,TPM_CRB_DATA_BUFFER_3,Same as TPM_CRB_DATA_BUFFER_0
+3,3FFFh-3F00h,Reserved,Reserved for maximum size of Command/Response Buffer
+4,4003h-4000h,TPM_LOC_STATE_4,Same as TPM_LOC_STATE_0
+4,4007h-4004h,Undefined,Reserved
+4,400Bh-4008h,TPM_LOC_CTRL_4,Used to gain control of a TPM by this locality.
+4,400Fh-400Ch,TPM_LOCALITY_STS_4,Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
+4,0013h-0010h,TPM_DATA_CSUM_ENABLE_4,Same as TPM_DATA_CSUM_ENABLE_0
+4,0017h-0014h,TPM_DATA_CSUM_4,Same as TPM_DATA_CSUM_0
+4,402Fh-4018h,Undefined,Reserved
+4,4037h-4030h,TPM_CRB_INTF_ID_4,Same as TPM_CRB_INTF_ID_0
+4,403Fh-4038h,Undefined,Reserved
+4,4043h-4040h,TPM_CRB_CTRL_REQ_4,Same as TPM_CRB_CTRL_REQ_0
+4,4047h-4044h,TPM_CRB_CTRL_STS_4,Same as TPM CRB_CTRL_STS_0
+4,404Bh-4048h,TPM_CRB_CTRL_CANCEL_4,Same as TPM_CRB_CTRL_CANCEL_0
+4,404Fh-404Ch,TPM_CRB_CTRL_START_4,Same as TPM_CRB_CTRL_START_0
+4,4053h-4050h,TPM_CRB_INT_ENABLE_4,Same as TPM_CRB_INT_ENABLE_0
+4,4057h-4054h,TPM_CRB_INT_STS_4,Same as TPM_CRB_INT_STS_0
+4,405Bh-4058h,TPM_CRB_CTRL_CMD_SIZE_4,Same as TPM_CRB_CTRL_CMD_SIZE_0
+4,405Fh-405Ch,TPM_CRB_CTRL_CMD_LADDR_4,Same as TPM_CRB_CTRL_CMD_LADDR_0
+4,4063h-4060h,TPM_CRB_CTRL_CMD_HADDR_4,Same as TPM_CRB_CTRL_CMD_HADDR_0
+4,4067h-4064h,TPM_CRB_CTRL_RSP_SIZE_4,Same as TPM_CRB_CTRL_RSP_SIZE_0
+4,406Fh-4068h,TPM_CRB_CTRL_RSP_ADDR_4,Same as TPM_CRB_RSP_ADDR_0
+4,407Fh-4070h,Undefined,Reserved
+4,4EFFh-4080h,TPM_CRB_DATA_BUFFER_4,Same as TPM_CRB_DATA_BUFFER_0
+4,4FFFh-4F00h,Reserved,Reserved for maximum size of Command/Response Buffer

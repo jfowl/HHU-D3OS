@@ -1,4 +1,4 @@
-use core::ptr::{write_volatile, read_volatile};
+use core::ptr::{read_volatile, write_volatile};
 
 use acpi::{
     AcpiTable,
@@ -8,7 +8,7 @@ use log::info;
 use tpm2::{Command, commands::GetRandom};
 use x86_64::structures::paging::PageTableFlags;
 
-use crate::{acpi_tables, device::tpm2::TpmError::InvalidPlattformClass, memory::vma::VmaType, process_manager};
+use crate::{acpi_tables, device::tpm2::tpm2::TpmError::InvalidPlattformClass, memory::vma::VmaType, process_manager};
 
 pub fn init_tpm2() {
     // Attempt to find TPM
@@ -233,4 +233,12 @@ impl Tpm2Table {
             _ => Err(InvalidPlattformClass),
         }
     }
+}
+
+pub enum Tpm2Locality {
+    Locality0 = 0x0000,
+    Locality1 = 0x1000,
+    Locality2 = 0x2000,
+    Locality3 = 0x3000,
+    Locality4 = 0x4000,
 }

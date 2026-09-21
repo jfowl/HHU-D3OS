@@ -54,6 +54,7 @@ num_enum = { version = "0.7.3", default-features = false }
 llfree = { git = "https://github.com/luhsra/llfree-rs", default-features = false, rev = "da75cc496c5dfcaac84a2814f12477a0b1bca3ba" }
 uuid = { version = "1.23.1", default-features = false, features = ["v7"] }
 tpm2 = "0.1.0"
+tock-registers = "0.10.1"
 
 # these three need to be updated in sync
 multiboot2 = "0.25"
