@@ -72,7 +72,7 @@ args = [
     # Connect to software TPM (launched separately with swtpm)
     "-chardev", "socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock",
     "-tpmdev", "emulator,id=tpm0,chardev=chrtpm",
-    "-device", "tpm-tis,tpmdev=tpm0",
+    "-device", "tpm-crb,tpmdev=tpm0",
 ]   
 
 [tasks.qemu-wsl]

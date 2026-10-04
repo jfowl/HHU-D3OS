@@ -1,16 +1,66 @@
-use core::ptr::{read_volatile, write_volatile};
+use core::{
+    ops::Range,
+    ptr::{read_volatile, write_volatile},
+};
 
 use acpi::{
     AcpiTable,
     sdt::{SdtHeader, Signature},
 };
-use log::info;
+use log::{debug, info};
+use num_enum::TryFromPrimitive;
+use tock_registers::interfaces::{ReadWriteable, Readable, Writeable};
 use tpm2::{Command, commands::GetRandom};
 use x86_64::structures::paging::PageTableFlags;
 
-use crate::{acpi_tables, device::tpm2::tpm2::TpmError::InvalidPlattformClass, memory::vma::VmaType, process_manager};
+use crate::{
+    acpi_tables,
+    device::tpm2::{
+        crb::{LocalityControl, get_locality_0_regs},
+        tpm2::TpmError::{InvalidPlattformClass, InvalidStartMethod},
+        util::{mmio_map, try_get_tpm2_via_acpi},
+    },
+    memory::vma::VmaType,
+    process_manager,
+};
 
 pub fn init_tpm2() {
+    // Try finding the TPM2 via ACPI:
+
+    let maybe_acpi_mmio_start_address = try_get_tpm2_via_acpi();
+    match maybe_acpi_mmio_start_address {
+        None => info!("No tpm2 mmio start address in acpi info"),
+        Some(addr) => info!("Found mmio start address in acpi: {:#?}", addr),
+    }
+
+    // QEMU: The CRB interface makes a memory mapped IO region
+    // in the area 0xfed40000-0xfed40fff (1 locality)
+    // available to the guest operating system.
+    let mmio_range = Range {
+        start: 0xfed40000,
+        end: 0xfed40fff,
+    };
+    mmio_map(mmio_range.clone(), "tpm2");
+
+    let loc0_regs = get_locality_0_regs(mmio_range.start);
+
+    loc0_regs
+        .loc_ctrl
+        .modify(LocalityControl::requestAccess::SET + LocalityControl::Relinquish::SET);
+
+    info!("Asked TPM2 to give access to Locality 0");
+
+    info!("LOC_STATE: {:#?}", loc0_regs.loc_state.extract().debug());
+    info!("LOC_STATUS: {:#?}", loc0_regs.loc_sts.extract().debug());
+    info!("INTF_ID: {:#?}", loc0_regs.crb_intf_id.extract().debug());
+    info!("CRB_STATUS: {:#?}", loc0_regs.crb_ctrl_sts.extract().debug());
+    let raw_crb_status: u32 = loc0_regs.crb_ctrl_sts.extract().into();
+    info!("CRB_STATUS raw: {:#?}", raw_crb_status);
+
+    panic!("Time to shut down!");
+}
+
+pub fn init_tpm2_old() {
     // Attempt to find TPM
     let tpm_header = acpi_tables()
         .lock()
@@ -147,27 +197,32 @@ pub fn init_tpm2() {
     // </AISlop> ------------------------------------
 }
 
-#[derive(Copy, Clone, Debug)]
-enum PlattformClass {
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum PlattformClass {
     Client = 0,
     Server = 1,
 }
 
 /// As defined in
 /// https://trustedcomputinggroup.org/wp-content/uploads/TCG_ACPIGeneralSpecification_v1.20_r8.pdf#%5B%7B%22num%22%3A71%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C69%2C530%2C0%5D
-#[derive(Copy, Clone, Debug)]
-enum StartMethodType {
+#[derive(Copy, Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[repr(u32)]
+pub enum StartMethodType {
     ///  Uses the ACPI Start method.
     AcpiStartMethod = 2,
-    ///  Reserved for the Memory mapped I/O Interface (TIS 1.2+Cancel).
+    /// Reserved for the Memory mapped I/O Interface (TIS 1.2+Cancel).
     MemMappedIO = 6,
-    ///  Uses the Command Response Buffer Interface with the ACPI Start Method.
-    CommandResponseBufferInterfaceWithAcpiStartMethod = 8,
+    CrbInterface = 7,
+    CrbInterfaceWithAcpiStartMethod = 8,
     ///  Uses the Command Response Buffer Interface with ARM Secure Monitor Call (SMC)
-    CommandResponseBufferInterfaceWithArmSMC = 11,
+    CrbArmSmcHvc = 11,
+    FifoI2c = 12,
+    CrbAmdMailbox = 13,
+    CrbArmFwFa = 15,
 }
 
-enum TpmError {
+#[derive(Debug, PartialEq)]
+pub enum TpmError {
     InvalidStartMethod,
     InvalidPlattformClass,
 }
@@ -203,7 +258,7 @@ pub struct Tpm2Table {
     start_method: u32, // maps to StartMethodType
 
     /// len=4-12, offset=52
-    start_method_params: u32,
+    pub start_method_params: u32,
 }
 
 /// ### Safety: Implementation properly represents a valid HPET table.
@@ -217,13 +272,7 @@ unsafe impl AcpiTable for Tpm2Table {
 
 impl Tpm2Table {
     pub fn start_method(&self) -> Result<StartMethodType, TpmError> {
-        match self.start_method {
-            2 => Ok(StartMethodType::AcpiStartMethod),
-            6 => Ok(StartMethodType::MemMappedIO),
-            8 => Ok(StartMethodType::CommandResponseBufferInterfaceWithAcpiStartMethod),
-            11 => Ok(StartMethodType::CommandResponseBufferInterfaceWithArmSMC),
-            _ => Err(InvalidPlattformClass),
-        }
+        StartMethodType::try_from(self.start_method).map_err(|_| TpmError::InvalidStartMethod)
     }
 
     pub fn plattform_class(&self) -> Result<PlattformClass, TpmError> {
@@ -232,6 +281,10 @@ impl Tpm2Table {
             1 => Ok(PlattformClass::Server),
             _ => Err(InvalidPlattformClass),
         }
+    }
+
+    pub fn get_control_area_address(&self) -> u64 {
+        self.control_area_address
     }
 }
 

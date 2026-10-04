@@ -8,6 +8,7 @@
    ╚═════════════════════════════════════════════════════════════════════════╝
 */
 use crate::device::apic::get_cpu_count;
+use crate::device::tpm2::tpm2::init_tpm2;
 use crate::process::core_local_storage::{init_gdt_for_this_core, install_gs_base, scheduler, scheduler_start};
 use crate::{consts, per_cpu_init};
 use crate::device::pit::Timer;
@@ -370,7 +371,7 @@ pub extern "C" fn start(multiboot2_magic: u32, multiboot2_addr: *const BootInfor
 
 
 
-    crate::device::tpm2::init_tpm2();
+    init_tpm2();
 
     // Load initial ramdisk
     init_initrd(initrd_tag);

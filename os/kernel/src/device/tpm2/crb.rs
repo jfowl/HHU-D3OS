@@ -1,18 +1,22 @@
-use tock_registers::registers::{ReadOnly, ReadWrite};
+use tock_registers::interfaces::Readable;
+use tock_registers::registers::{InMemoryRegister, ReadOnly, ReadWrite};
 use tock_registers::{register_bitfields, register_structs};
+
+use crate::device::tpm2::crb::CrbControlCancel::Cancel;
+use crate::device::tpm2::mmio::MMIO;
 
 register_structs! {
 
     /// As defined in "Table 36 — Address Allocation for CRB TPM Access"
     pub CrbRegisters {
         /// Used to determine current state of locality of a TPM. This register is aliased across all localities. Read-only.
-        (0x0000 => pub loc_state: ReadOnly<u32, LocalityState::Register>),
+        (0x0000 => pub loc_state: InMemoryRegister<u32, LocalityState::Register>),
 
         /// Reserved
         (0x0004 => _reserved0),
 
         /// Used to gain control of a TPM by this locality. This register SHALL NOT be aliased.
-        (0x0008 => pub loc_ctrl: ReadWrite<u32, LocalityControl::Register>),
+        (0x0008 => pub loc_ctrl: InMemoryRegister<u32, LocalityControl::Register>),
 
         /// Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
         (0x000C => pub loc_sts: ReadOnly<u32, LocalityStatus::Register>),
@@ -82,7 +86,7 @@ register_bitfields![u32,
     /// Used to determine status of the locality controls of a TPM.
     ///
     /// See also "Table 37 — TPM_LOC_STATE Definition"
-    LocalityState [
+    pub LocalityState [
         /// A TPM clears this bit to 0 upon receipt of D-RTM HASH_END.\
         /// A TPM sets this bit to a 1 when the TPM_LOC_CTRL_x.resetEstablishment field is set to 1.
         tpmEstablished              OFFSET(0)   NUMBITS(1) [],
@@ -108,7 +112,7 @@ register_bitfields![u32,
     /// Used to gain control of a TPM
     ///
     /// See also "Table 38 — TPM_LOC_CTRL_x Register Definition"
-    LocalityControl [
+    pub LocalityControl [
         /// Reads always return 0.\
         /// Writes (0): Ignored.\
         /// Writes (1): Interrupt a TPM and execute a locality arbitration algorithm.
@@ -217,13 +221,103 @@ register_bitfields![
     ///
     /// See also "Table 24 — CRB Interface Identifier Register"
     CrbInterfaceIdentifier [
-        /// `0000` – FIFO interface as defined in PTP for TPM 2.0 is active.\
-        /// `0010` – RAM CRB interface is active.\
-        /// `0001` – CRB interface is active.\
-        /// `1111` – FIFO interface as defined in TIS1.3 is active (all other fields of this register are don’t care).
-        InterfaceType               OFFSET(0)   NUMBITS(4) [],
+        InterfaceType               OFFSET(0)   NUMBITS(4) [
+            /// `0000` – FIFO interface as defined in PTP for TPM 2.0 is active.\
+            FifoPtp = 0b0000,
 
-        // ....
+            /// `0010` – RAM CRB interface is active.\
+            RamCrb = 0b0010,
+
+            /// `0001` – CRB interface is active.\
+            Crb = 0b0001,
+
+            /// `1111` – FIFO interface as defined in TIS1.3 is active (all other fields of this register are don’t care).
+            FifoTis = 0b1111,
+        ],
+
+        InterfaceVersion            OFFSET(4)   NUMBITS(4) [
+            /// 0000 – FIFO interface for TPM2.0
+            FifoTpm2 = 0b0000,
+
+            /// 0011 – CRB interface version 3 with support for TPM Library 1.59.\
+            /// See Table 25 — CRB Historical Interface Versions
+            CrbInterfaceV3 = 0b0011,
+        ],
+
+        CapLocality                 OFFSET(8)   NUMBITS(1) [
+            /// Note: TPMs are required to support relinquishing Locality 0 so that no Locality is active
+            SupportsLocality0Only = 0,
+            SupportsAll5Localities = 1,
+        ],
+
+        CapCRBIdleBypass            OFFSET(9)   NUMBITS(1) [
+            NoIdleBypass = 0,
+            /// TPM supports transition from Command Completion directly to Ready
+            /// and supports transition from Command Completion directly to Command Reception.
+            SupportsIdleBypass = 1,
+        ],
+
+        CapCRBChunk                 OFFSET(10)  NUMBITS(1) [
+            CrbChunkingNotSupported = 0,
+            CrbChunkingSupported = 1
+        ],
+
+        CapDataXferSizeSupport      OFFSET(11)  NUMBITS(2) [
+            UpTo4Bytes  = 0b00,
+            UpTo8Bytes  = 0b01,
+            UpTo32Bytes = 0b10,
+            UpTo64Bytes = 0b11,
+        ],
+
+        CapFIFO                     OFFSET(13)  NUMBITS(1) [
+            NoFifo = 0,
+            FifoSupported = 1,
+        ],
+            
+        CapCrb                      OFFSET(14)  NUMBITS(1) [
+            NoCrb = 0,
+            CrbSupported = 1
+        ],
+
+        /// Reserved for future interfaces
+        CapIFRes                    OFFSET(15)  NUMBITS(2) [],
+
+        /// This field can only be written if IntfSelLock is 0.\ 
+        /// Writes to this field take effect on next _TPM_INIT. Other values are reserved.
+        InterfaceSelector           OFFSET(17)  NUMBITS(2) [
+            ChangeToFifo = 0b00,
+            ChangeToCrb  = 0b01,
+        ],
+
+        /// Field is reset to 0 on _TPM_INIT
+        IntfSelLock                 OFFSET(19)  NUMBITS(1) [
+            /// A write of this value is ignored
+            Ignored = 0,
+            /// A write of this value locks the InterfaceSelector field and prevents further changes
+            LockField = 1,
+        ],
+
+        CapSPICSUM                  OFFSET(22)  NUMBITS(2) [
+            /// The TPM does not support calculation of a checksum.
+            NoChecksumCalc       = 0b00,
+            /// The TPM supports explicit calculation of a checksum for command and response.
+            ExplicitChecksumCalc = 0b01,
+            /// The TPM supports implicit calculation of a checksum for command and response.
+            ImplicitChecksumCalc = 0b10,
+        ],
+
+        /// Revision ID – specifies the revision of the component
+        RID                         OFFSET(24)  NUMBITS(8) [],
+
+        /// Vendor ID- assigned by TCG. This is represented within the
+        /// register in big-endian format. For example, a vendor ID of
+        /// 0x1234 would be represented as: Bits 7:0 = 34 (0011 0100);
+        /// Bits 15:8 = 12 (0001 0010).        
+        VID                         OFFSET(32)  NUMBITS(16) [],
+
+        /// Device ID – vendor-specific
+        DID                         OFFSET(48)  NUMBITS(16) [],
+
     ],
 ];
 
@@ -264,13 +358,19 @@ register_bitfields![u32,
         /// Used by the TPM to indicate current status.\
         /// 1: Set by the TPM to indicate a FATAL Error\
         /// 0: Indicates the TPM is operational
-        tpmSts                      OFFSET(0)   NUMBITS(1) [],
+        tpmSts                      OFFSET(0)   NUMBITS(1) [
+            FatalError  = 1,
+            Operational = 0,
+        ],
 
         /// Used by the TPM to indicate it is in the Idle State.\
         /// 1: Set by the TPM when in the Idle State\
         /// 0: Cleared by the TPM on receipt of `TPM_CRB_CTRL_REQ_x.cmdReady` when TPM
         /// transitions to the Ready State. SHALL be cleared by `TIMEOUT_C`
-        tpmIdle                     OFFSET(1)   NUMBITS(1) [],
+        tpmIdle                     OFFSET(1)   NUMBITS(1) [
+            Idle = 1,
+            Ready = 0,
+        ],
 
 
         /// Used by a TPM to indicate the command checksum is available to be read by the host,
@@ -280,7 +380,10 @@ register_bitfields![u32,
         /// 0: Indicates no CSUM is available
         ///
         /// See Section 6.5.1.8.2 TPM_DATA_CSUM
-        cSUMAvailable               OFFSET(2)   NUMBITS(1) [],
+        cSUMAvailable               OFFSET(2)   NUMBITS(1) [
+            Available = 1,
+            NotAvailable = 0
+        ],
     ],
 
 
@@ -396,3 +499,11 @@ register_bitfields![u32,
 
 
 ];
+
+pub fn get_locality_0_regs(mmio_start_addr: u64) -> MMIO<CrbRegisters> {
+    let mut regs: MMIO<CrbRegisters> = MMIO::new(mmio_start_addr as *mut CrbRegisters);
+
+    let cancel = regs.crb_ctrl_cancel.read(Cancel);
+
+    return regs;
+}
