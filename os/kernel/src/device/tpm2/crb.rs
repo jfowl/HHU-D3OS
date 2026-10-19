@@ -10,13 +10,13 @@ register_structs! {
     /// As defined in "Table 36 — Address Allocation for CRB TPM Access"
     pub CrbRegisters {
         /// Used to determine current state of locality of a TPM. This register is aliased across all localities. Read-only.
-        (0x0000 => pub loc_state: InMemoryRegister<u32, LocalityState::Register>),
+        (0x0000 => pub loc_state: ReadWrite<u32, LocalityState::Register>),
 
         /// Reserved
         (0x0004 => _reserved0),
 
         /// Used to gain control of a TPM by this locality. This register SHALL NOT be aliased.
-        (0x0008 => pub loc_ctrl: InMemoryRegister<u32, LocalityControl::Register>),
+        (0x0008 => pub loc_ctrl: ReadWrite<u32, LocalityControl::Register>),
 
         /// Used to determine whether locality has been granted or seized. Read-only. This register SHALL NOT be aliased.
         (0x000C => pub loc_sts: ReadOnly<u32, LocalityStatus::Register>),
@@ -176,7 +176,7 @@ register_bitfields![u32,
     /// This register is unique for each locality.
     ///
     /// See also "Table 40 —TPM_LOC_STS"
-    LocalityStatus [
+    pub LocalityStatus [
         /// 0: Locality has not been granted access to the TPM.\
         /// 1: Locality has been granted access to the TPM
         Granted                     OFFSET(0)   NUMBITS(1) [],
@@ -188,7 +188,7 @@ register_bitfields![u32,
 
 
     /// See also "Table 28 — TPM_DATA_CSUM_ENABLE Definition"
-    DataChecksumEnable [
+    pub DataChecksumEnable [
         /// Implicit Data Checksum enabled
         dataCSumEnable              OFFSET(0)   NUMBITS(1) [
             Enabled = 1,
@@ -273,7 +273,7 @@ register_bitfields![
             NoFifo = 0,
             FifoSupported = 1,
         ],
-            
+
         CapCrb                      OFFSET(14)  NUMBITS(1) [
             NoCrb = 0,
             CrbSupported = 1
@@ -282,7 +282,7 @@ register_bitfields![
         /// Reserved for future interfaces
         CapIFRes                    OFFSET(15)  NUMBITS(2) [],
 
-        /// This field can only be written if IntfSelLock is 0.\ 
+        /// This field can only be written if IntfSelLock is 0.\
         /// Writes to this field take effect on next _TPM_INIT. Other values are reserved.
         InterfaceSelector           OFFSET(17)  NUMBITS(2) [
             ChangeToFifo = 0b00,
@@ -312,8 +312,40 @@ register_bitfields![
         /// Vendor ID- assigned by TCG. This is represented within the
         /// register in big-endian format. For example, a vendor ID of
         /// 0x1234 would be represented as: Bits 7:0 = 34 (0011 0100);
-        /// Bits 15:8 = 12 (0001 0010).        
-        VID                         OFFSET(32)  NUMBITS(16) [],
+        /// Bits 15:8 = 12 (0001 0010).
+        VID                         OFFSET(32)  NUMBITS(16) [
+            // Mapping taken from "Table 1" in "TCG-TPM-Vendor-ID-Registry-V1.08-pub.pdf"
+            AMD = 0x1022,
+            AntGroup = 0x6688,
+            Arm = 0x13B5,
+            Atmel = 0x1114,
+            Broadcom = 0x14E4,
+            Cisco = 0xC5C0,
+            FlySliceTechnologies = 0x232B,
+            FuzhouRockchip = 0x232A,
+            Google = 0x6666,
+            HPI = 0x103C,
+            HPE = 0x1590,
+            Huawei = 0x8888,
+            IBM = 0x1014,
+            Infineon = 0x15D1,
+            Intel = 0x8086,
+            Lenovo = 0x17AA,
+            Microsoft = 0x1414,
+            NationalSemi = 0x100B,
+            Nationz = 0x1B4E,
+            NSING = 0x9999,
+            NuvotonTechnology1 = 0x1050,
+            Qualcomm = 0x1011,
+            Samsung = 0x144D,
+            SecEdge = 0x5ECE,
+            Sinosun = 0x19FA,
+            SMSC = 0x1055,
+            Solidigm = 0x025E,
+            STMicroelectronics = 0x104A,
+            TexasInstruments = 0x104C,
+            Wisekey = 0x2406,
+        ],
 
         /// Device ID – vendor-specific
         DID                         OFFSET(48)  NUMBITS(16) [],
